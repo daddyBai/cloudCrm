@@ -1,0 +1,10 @@
+{
+    "ID": "ID",
+    "Created at":"创建时间",
+    "Updated at":"更新时间",
+    "name":"姓名",
+    "email":"邮箱",
+    "mobile":"手机号",
+    "client_id":"客户ID",
+    "employee_id":"员工ID"
+}
