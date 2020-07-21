@@ -6,5 +6,7 @@ class Mission extends BaseModel
 {
     protected $table = 'crm_mission';
 
-
+    protected $fillable = [
+        'finished','status'
+    ];
 }

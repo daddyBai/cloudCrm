@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'mobile'                =>  '手机号',
+    'department_id'                =>  '所属部门',
+    'status'                =>  '状态',
     'online'                => '在线',
     'login'                 => '登录',
     'logout'                => '登出',

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Encore\Admin\Auth\Database\Role;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
@@ -102,17 +104,15 @@ class User extends Authenticatable
      * 没有部门的员工
      * @return mixed
      */
-    public static function EmployeesWithoutDepartment()
+    public static function UserWithoutDepartment()
     {
-        $cacheFile = date('Ymd',time()).'-EmployeesWithoutDepartment-';
+        $cacheFile = date('Ymd',time()).'-UserWithoutDepartment-';
 
         if(Redis::exists($cacheFile)) {
             $r_data = Redis::get($cacheFile);
         }else{
-            $users = DB::table('admin_role_users')->where('role_id', 3)->pluck('user_id')->toArray();
             $users = DB::table('admin_users')
-                ->whereIn('id', $users)
-                ->whereNull('department')
+                ->whereNull('department_id')
                 ->pluck('name', 'id')
                 ->toArray();
             $r_data = json_encode($users);
@@ -124,8 +124,8 @@ class User extends Authenticatable
 
     public static function getDepartment($employee_id){
         $user = self::query()->where('id',$employee_id)->first()->toArray();
-        if($user && isset($user['department'])){
-            return $user['department'];
+        if($user && isset($user['department_id'])){
+            return $user['department_id'];
         }
         return 0;
     }
@@ -138,7 +138,7 @@ class User extends Authenticatable
      */
     public static function joinDepartment($department_id, $employee_ids)
     {
-        return self::query()->whereIn('id',$employee_ids)->update(['department'=>$department_id]);
+        return self::query()->whereIn('id',$employee_ids)->update(['department_id'=>$department_id]);
     }
 
 
@@ -149,22 +149,12 @@ class User extends Authenticatable
      */
     public static function quitDepartment($employee_ids)
     {
-        return self::query()->whereIn('id',$employee_ids)->update(['department'=>NULL]);
+        return self::query()->whereIn('id',$employee_ids)->update(['department_id'=>NULL]);
     }
 
-    public static function Department()
+    public function department()
     {
-        $cacheFile = date('Ymd',time()).'-Department-';
-
-        if(Redis::exists($cacheFile)) {
-            $r_data = Redis::get($cacheFile);
-        }else{
-            $department = self::query()->pluck('name','id')->toArray();
-            $r_data = json_encode($department);
-            Redis::set($cacheFile,$r_data);
-        }
-
-        return json_decode($r_data, true);
+        return $this->belongsTo(Department::class,'department_id','id');
     }
 
     /**
@@ -199,5 +189,32 @@ class User extends Authenticatable
         return $this->hasMany(Client::class, 'employee_id','id');
     }
 
+    /**
+     * A user has and belongs to many roles.
+     *
+     * @return BelongsToMany
+     */
+    public function roles(): BelongsToMany
+    {
+        $pivotTable = config('admin.database.role_users_table');
+
+        $relatedModel = config('admin.database.roles_model');
+
+        return $this->belongsToMany($relatedModel, $pivotTable, 'user_id', 'role_id');
+    }
+
+    /**
+     * A User has and belongs to many permissions.
+     *
+     * @return BelongsToMany
+     */
+    public function permissions(): BelongsToMany
+    {
+        $pivotTable = config('admin.database.user_permissions_table');
+
+        $relatedModel = config('admin.database.permissions_model');
+
+        return $this->belongsToMany($relatedModel, $pivotTable, 'user_id', 'permission_id');
+    }
 
 }

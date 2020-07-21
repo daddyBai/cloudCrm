@@ -2,12 +2,10 @@
 
 namespace App\Admin\Controllers;
 
-use App\Admin\Traits\tabMenu;
 use App\Models\CrmConfig;
 use App\Models\Department;
 use App\Models\User;
 use Encore\Admin\Form;
-use Encore\Admin\Grid;
 use Encore\Admin\Layout\Content;
 use Encore\Admin\Show;
 use Encore\Admin\Tree;
@@ -28,45 +26,47 @@ class DepartmentController extends BaseController
         $employees = new Department();
         $employees->query()->withCount('employees');
 
-        $tree = new Tree($employees);
-
         return $content->header('部门管理')
-            ->row(function ($row) use ($tree, $content){
-                $row->column(6,$tree);
-                $row->column(6,$this->form());
+            ->row(function ($row) {
+                $row->column(10, $this->treeView()->render());
             });
     }
 
-    /**
-     * Make a grid builder.
-     *
-     * @return Grid
-     */
-    protected function grid()
+
+    protected function treeView()
     {
-        $grid = new Grid(new Department());
-        $grid->model()->with('employees');
+        $tree = new Tree(new Department());
 
-        $grid->column('id', __('ID'))->sortable();
-        $grid->column('title','部门名称');
-        $grid->column('parent_id','上级部门')->using(Department::allDepartment());
-        $grid->column('leader','部门主管')->using(User::Manager());
-
-
-        $grid->column('employees','包含员工')->display(function ($model){
-            dd($model);
+        $tree->query(function ($model){
+            return $model->with('employees');
         });
-        $grid->column('employee','包括员工')->display(function ($model){
-            foreach ($model as $k => $emp){
-                $model[$k] = User::Employees()[$emp];
-            }
-            return $model;
-        })->label();
-        $grid->column('created_at', __('Created at'));
-        $grid->column('updated_at', __('Updated at'));
 
+        $tree->branch(function ($branch) {
+            $count = empty($branch['employees']) ? 0 : count($branch['employees']);
+            $leader = empty($branch['leader']) ? '' : User::Users()[$branch['leader']];
+            $employees = empty($branch['employees']) ? 0 : join(', ',collect($branch['employees'])->pluck('name')->toArray());
+            $payload = "&nbsp;<strong>{$branch['title']}  &nbsp;&nbsp;( {$count} 人)  </strong>";
+            $payload .= "<small style='color: grey'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;主管： $leader</small>";
+            $payload .= "<small style='color: grey'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;组员： $employees</small>";
+            return $payload;
+        });
+        return $tree;
+    }
 
-        return $grid;
+    public function create(Content $content)
+    {
+        return $content
+            ->title($this->title())
+            ->description($this->description['create'] ?? trans('admin.create'))
+            ->body($this->form());
+    }
+
+    public function edit($id, Content $content)
+    {
+        return $content
+            ->title($this->title())
+            ->description($this->description['edit'] ?? trans('admin.edit'))
+            ->body($this->form()->edit($id));
     }
 
     /**
@@ -86,26 +86,30 @@ class DepartmentController extends BaseController
         return $show;
     }
 
-    /**
-     * Make a form builder.
-     *
-     * @return Form
-     */
     protected function form()
     {
         $form = new Form(new Department());
+        $deps = Department::allDepartment();
+        $deps[0] = '根目录';
+        ksort($deps);
 
-        $form->display('id', __('ID'));
-        $form->text('title','部门名称');
-        $form->select('parent_id','上级部门')->options(Department::allDepartment());
-        $form->select('leader','部门领导')->options(User::Users());
-        $form->multipleSelect('employee','部门成员')->options(User::Users());
-        $form->display('created_at', __('Created At'));
-        $form->display('updated_at', __('Updated At'));
+        $form->hidden('id', __('ID'));
+        $form->text('title','部门名称')->required();
+        $form->select('parent_id','上级部门')->options($deps);
+        $form->select('leader','部门领导')->options(User::Users())->required();
+        $form->multipleSelect('employee','部门成员')->options(User::UserWithoutDepartment());
 
         $form->saved(function (Form $form){
             // 同步部门信息到admin_user表  新增时...
+
+            User::query()->where('department_id',$form->id)->update(['department_id'=>NULL,'is_leader'=>2]);
             User::joinDepartment($form->model()->id, array_filter($form->employee));
+            User::joinDepartment($form->model()->id, [$form->leader]);
+
+            $dep = Department::query()->whereNotNull('leader')->pluck('leader');
+            User::query()->update(['is_leader'=>2]);
+            User::query()->whereIn('id',$dep)->update(['is_leader'=>1]);
+
             CrmConfig::delCache(date('Ymd',time()).'-EmployeesWithoutDepartment-');
         });
 
@@ -117,19 +121,10 @@ class DepartmentController extends BaseController
         $form->disableEditingCheck();
         $form->disableCreatingCheck();
         $form->disableViewCheck();
-        $form->saved(function (Form $form){
-            return back();
-        });
+
 
         return $form;
     }
 
-
-    public function test()
-    {
-        $h = new HomeController();
-        $rs = $h->MineStat();
-        dd($rs);
-    }
 
 }

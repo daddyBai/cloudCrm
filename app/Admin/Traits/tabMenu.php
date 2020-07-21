@@ -29,6 +29,11 @@ trait tabMenu{
         $curl = explode("?",Request::getRequestUri())[0];
         $menuList = self::menuList($id);
 
+        if(strstr($curl,'clue')){
+            unset($menuList['放贷']);
+            unset($menuList['回访']);
+        }
+
         $tab = new Tab();
         foreach ($menuList as $k => $m){
             if($m == $curl){
@@ -39,5 +44,7 @@ trait tabMenu{
         }
         return $tab->render();
     }
+
+
 
 }

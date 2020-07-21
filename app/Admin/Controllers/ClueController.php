@@ -36,6 +36,14 @@ class ClueController extends BaseController
     protected $title = '线索';
 
 
+    public function index(Content $content)
+    {
+        return $content
+            ->title($this->title())
+            ->description($this->description['index'] ?? trans('admin.list'))
+            ->body($this->grid());
+    }
+
     /**
      * Make a grid builder.
      *

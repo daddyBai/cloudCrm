@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Department;
+use App\Models\User;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\DB;
 
@@ -87,26 +89,8 @@ Route::group([
     $router->get('dial/call/{id}','DialController@dial');
 
     # 测试
-    $router->any('/test',function (){
-        $permission = [
-            'query',
-            'create',
-            'import',
-            'export',
-            'forward',
-            'edit',
-            'delete',
-        ];
-        $firstMenu = DB::table('admin_menu')->where('parent_id',0)
-            ->get();
-
-
-        // 菜单权限
-        $menuPermission = DB::table('admin_menu')->where('parent_id','>',0)
-            ->get()
-            ->filter(function ($model) use ($permission){
-                return $model->permission != '';
-            });
-
+    $router->any('/test',function () {
+//        User::query()->where('department_id',5)->update(['department_id'=>NULL,'is_leader'=>2]);
+        User::query()->update(['department_id'=>NULL,'is_leader'=>2,'status'=>2]);
     });
 });

@@ -2,9 +2,11 @@
 
 namespace App\Admin\Controllers;
 
+use App\Models\CallRecords;
 use App\Models\Department;
 use App\Models\Mission;
 use App\Models\User;
+use Carbon\Carbon;
 use Encore\Admin\Controllers\AdminController;
 use Encore\Admin\Facades\Admin;
 use Encore\Admin\Form;
@@ -20,9 +22,9 @@ class MissionController extends AdminController
      */
     protected $title = '外呼任务';
 
-    protected $status = [1=>'已完成',2=>'未完成'];
+    protected $status = [1=>'已完成',2=>'未完成',3=>'失败'];
 
-    protected $category = [1=>'部门任务',2=>'小组任务',3=>'个人任务'];
+    protected $category = [1=>'部门任务',2=>'个人任务'];
 
     /**
      * Make a grid builder.
@@ -34,14 +36,34 @@ class MissionController extends AdminController
         $grid = new Grid(new Mission());
         $grid->column('category','分类')->using($this->category);
         $grid->column('department_id','所属部门')->using(Department::allDepartment());
-        $grid->column('group_id','所属小组');
         $grid->column('employee_id','所属销售')->using(User::Employees());
         $grid->column('name','任务名称');
         $grid->column('start_at','开始时间')->date('Y-m-d');
         $grid->column('end_at','结束时间')->date('Y-m-d');
         $grid->column('wanted','外呼任务数');
+
         $grid->column('finished','完成率')->display(function ($model){
-            return $this->wanted > 0 ? round($this->finished / $this->wanted * 100 , 2) : 0;
+            if($model == 0){
+                if($this->category == 1){
+                    $departs = Department::query()->where('parent_id',$this->department_id)->pluck('id');
+                    $departs->add($this->department_id);
+                    $users = User::query()->whereIn('department_id',$departs->toArray())->pluck('id');
+                }else{
+                    $users = $this->employee_id;
+                }
+                $finished = CallRecords::query()
+                    ->whereIn('employee_id',$users)
+                    ->whereBetween('call_at',[$this->start_at,$this->end_at])
+                    ->count();
+                $status = $finished >= $this->wanted ? 1 : 2;
+                $endTime = Carbon::parse($this->end_at);
+                $nowTime = Carbon::now();
+                if($endTime->lte($nowTime) && $status == 2){
+                    $status = 3;
+                }
+                Mission::query()->find($this->id)->update(['finished'=>$finished,'status'=>$status]);
+            }
+            return $this->wanted > 0 ? round($finished / $this->wanted * 100 , 2) : 0;
         })->progressBar($style = 'success', $size = 'sm', $max = 100);
         $grid->column('publish_by','任务发布人')->using(User::Manager());
         $grid->column('status','任务状态')->using($this->status);
@@ -55,7 +77,7 @@ class MissionController extends AdminController
                 $filter->between('start_at','任务开始时间')->date();
             });
             $filter->column(1/2,function ($filter){
-                $filter->equal('department_id','部门')->select(User::Department());
+                $filter->equal('department_id','部门')->select(Department::allDepartment());
                 $filter->equal('employee_id','坐席')->select(User::Employees());
                 $filter->between('end_at','任务结束时间')->date();
             });
@@ -96,7 +118,7 @@ class MissionController extends AdminController
         $form->number('wanted','外呼任务数')->required();
         $form->radio('category','任务对象')->options($this->category)
             ->when(1,function (Form $form){
-                $form->select('department_id','部门')->options(User::Department());
+                $form->select('department_id','部门')->options(Department::allDepartment());
             })
             ->when(2,function (Form $form){
                 $form->select('group_id','小组')->options(User::Employees());

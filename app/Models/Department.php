@@ -35,7 +35,7 @@ class Department extends BaseModel
         if(Redis::exists($cacheFile)) {
             $r_data = Redis::get($cacheFile);
         }else{
-            $dp = self::query()->pluck('name','id')->toArray();
+            $dp = self::query()->pluck('title','id')->toArray();
             $r_data = json_encode($dp);
             Redis::set($cacheFile,$r_data);
         }
@@ -45,7 +45,7 @@ class Department extends BaseModel
 
     public function employees()
     {
-        return $this->hasMany(User::class,'department','id');
+        return $this->hasMany(User::class,'department_id','id');
     }
 
 }
