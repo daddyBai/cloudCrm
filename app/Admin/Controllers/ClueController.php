@@ -4,6 +4,7 @@ namespace App\Admin\Controllers;
 
 use App\Admin\Actions\BatchDistribution;
 use App\Admin\Actions\Call;
+use App\Admin\Actions\Change;
 use App\Admin\Actions\GiveOther;
 use App\Admin\Actions\NeedHelp;
 use App\Admin\Extensions\Tools\ExcelImport;
@@ -55,14 +56,17 @@ class ClueController extends BaseController
 
         $grid = $this->permissions($grid, true, true, true);
 
-        $grid->column('name','姓名');
-        $grid->column('sex','性别')->using([1=>'男',2=>'女']);
-        $grid->column('mobile','手机号');
-        $grid->column('status','客户状态')->using(CrmConfig::getKeyValue('client_status'));
-        $grid->column('marriage','婚姻状况')->using(Client::marriage);
-        $grid->column('education','学历')->using(Client::education);
-        $grid->column('age','年龄');
+        $grid->model()->orderBy('created_at','desc');
+
+        $grid->column('id',__('ID'))->sortable();
+        $grid->column('name','姓名')->display(function ($model){
+            return "<a href='/admin/clue/$this->id/edit'>$model</a>";
+        });
+        $grid->column('mobile','手机号(点击拨号)')->display(function ($model){
+            return "<i class='fa fa-phone-square'></i>&nbsp;&nbsp;<a href='/admin/dial/call/$this->id'>$model</a>";
+        });
         $grid->column('employee_id','销售人员')->using(User::Users());
+        $grid->column('status','客户类型')->using(CrmConfig::getKeyValue('client_status'));
         $grid->column('employee_status','跟进状态')->using(CrmConfig::getKeyValue('follow_status'));
         $grid->column('last_updated_at','最后跟进时间')->display(function ($model){
             return ! empty($model) ? Carbon::parse($model)->diffForHumans() : '';
@@ -83,17 +87,16 @@ class ClueController extends BaseController
             });
         });
 
-
+        $grid->actions(function (Grid\Displayers\Actions $actions){
+            $actions->add(new Call($actions->row['id']));
+            $actions->disableView();
+        });
 
         $grid->batchActions(function ($batch){
-            if(self::isEmployee()){
-                $batch->add(new GiveOther());
-                $batch->add(new NeedHelp());
-            }else{
-                $batch->add(new BatchDistribution());
-            }
-            $batch->disableDelete();
+            $batch->add(new Change());
         });
+
+
 
         // 每页条数
         $grid->perPages([10,20,50,100,200,500,1000]);
@@ -187,12 +190,14 @@ class ClueController extends BaseController
     public function form()
     {
         $form = new Form(new Client);
-        $form->select('status','客户类型')->options(CrmConfig::getKeyValue('client_status'))->required();
+        $form->select('status','客户类型')
+            ->options(CrmConfig::getKeyValue('client_status'))
+            ->required()->help('有明确意向的客户会自动进入客户审核区域');
 
         $form->fieldset('个人信息',function ($form){
-            $form->text('name', '姓名');
+            $form->text('name', '姓名')->required();
 
-            $form->mobile('mobile', '手机号码')->disable();
+            $form->mobile('mobile', '手机号码')->required();
             $form->select('sex', '性别')->options([1 => '男', 2 => '女']);
             $form->number('age', '年龄');
             $form->select('marriage', '婚姻状况')->options(Client::marriage);
@@ -259,14 +264,12 @@ class ClueController extends BaseController
         });
         $form->divider();
 
-        if(self::isEmployee()){
-            $form->select('employee_id','所属销售员')->options(User::Employees())->disable();
-            $form->tools(function (Form\Tools $tools){
-                $tools->disableDelete();
-            });
-        }else{
-            $form->select('employee_id','所属销售员')->options(User::Employees());
-        }
+        $form->select('employee_id','所属销售员')
+            ->options(User::Users())->value(Admin::user()->id)->required()->help('注意不要选错了');
+        $form->tools(function (Form\Tools $tools){
+            $tools->disableDelete();
+        });
+
 
         return $form;
     }

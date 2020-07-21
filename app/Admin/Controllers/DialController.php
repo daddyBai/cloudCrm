@@ -4,6 +4,7 @@ namespace App\Admin\Controllers;
 use App\Models\CallRecords;
 use App\Models\Client;
 use App\Models\CrmConfig;
+use App\Models\Department;
 use App\Models\User;
 use Carbon\Carbon;
 use Encore\Admin\Facades\Admin;
@@ -85,10 +86,15 @@ class DialController extends BaseController
 
         $grid->column('id', __('ID'))->sortable();
         $grid->column('call_type','呼叫类型')->using($this->call_type);
-        $grid->column('client_name','客户姓名');
+        $grid->column('client_name','客户姓名')->display(function ($model){
+            return "<a href='/admin/clue/$this->id/edit'>$model</a>";
+        });
         $grid->column('call_from','主叫号码');
         $grid->column('call_to','被叫号码');
-        $grid->column('call_at','拨号时间');
+        $grid->column('call_to','被叫号码');
+        $grid->column('employee_id','通话坐席')->display(function ($model){
+            return User::myTitle($model);
+        })->style('text-align:center');
         $grid->column('call_duration','通话时长');
         $grid->column('call_status','接听状态')->using(CrmConfig::getKeyValue('call_status'));
         $grid->column('call_file_path','录音地址');

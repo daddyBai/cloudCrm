@@ -1,13 +1,14 @@
 <?php
 
 namespace App\Admin\Traits;
+use App\Models\Client;
 use Encore\Admin\Widgets\Tab;
 use Illuminate\Support\Facades\Request;
-use Illuminate\Support\Facades\URL;
 
 trait tabMenu{
 
     public static function menuList($id, $target=""){
+
         $menuList = [
             '详细资料'=>"/admin/myClient/$id/edit",
             '活动'=>"/admin/records/$id",
@@ -17,6 +18,17 @@ trait tabMenu{
             '放贷'=>"/admin/moneyOut/$id",
             '回访'=>"/admin/feedback/$id"
         ];
+
+        // 这里判断一下是线索还是客户
+        $true_client = Client::query()
+            ->where('id',$id)
+            ->where('true_client',1)
+            ->exists();
+        if(! $true_client){
+            unset($menuList['放贷']);
+            unset($menuList['回访']);
+            $menuList['详细资料'] = "/admin/clue/$id/edit";
+        }
 
         if(array_key_exists($target,$menuList)){
             return $menuList[$target];
@@ -29,10 +41,7 @@ trait tabMenu{
         $curl = explode("?",Request::getRequestUri())[0];
         $menuList = self::menuList($id);
 
-        if(strstr($curl,'clue')){
-            unset($menuList['放贷']);
-            unset($menuList['回访']);
-        }
+
 
         $tab = new Tab();
         foreach ($menuList as $k => $m){

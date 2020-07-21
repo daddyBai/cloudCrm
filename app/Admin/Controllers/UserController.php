@@ -38,18 +38,8 @@ class UserController extends BaseController
         $grid->column('name', trans('admin.name'));
 
         $grid->column('department_id','所属部门')->display(function ($model){
-            $currentDep = $model > 0 ? $model : 0;
-            $parentDep='';
-            if($currentDep > 0){
-                $parent = $this->department['parent_id'];
-                $parentDep = $parent > 0 ? Department::allDepartment()[$parent].' > ' : '';
-                $currentDep = Department::allDepartment()[$currentDep];
-            }else{
-                $currentDep = '';
-            }
-            return $parentDep.$currentDep;
-
-        });
+           return User::myTitle($this->id,false);
+        })->style('text-align:center;');
         $grid->column('is_leader','是否主管')->using([1=>'是']);
         $grid->column('department_boss','直属上级')->display(function ($model){
             $leader = $this->department['leader'];

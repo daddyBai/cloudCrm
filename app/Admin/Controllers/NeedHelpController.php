@@ -45,7 +45,7 @@ class NeedHelpController extends BaseController
         $grid->column('client_id','客户姓名')->using(Client::getAllClients());
         $grid->column('employee_id','销售人员')->using(User::Employees());
         $grid->column('helper_id','协助人员')->using(User::Employees());
-        $grid->column('dp','所属部门');
+        $grid->column('dp','所属部门')->using(Department::allDepartment());
         $grid->column('help_at', '协助时间');
 
         return $grid;

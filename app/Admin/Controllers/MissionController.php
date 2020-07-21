@@ -62,8 +62,9 @@ class MissionController extends AdminController
                     $status = 3;
                 }
                 Mission::query()->find($this->id)->update(['finished'=>$finished,'status'=>$status]);
+                $model = $finished;
             }
-            return $this->wanted > 0 ? round($finished / $this->wanted * 100 , 2) : 0;
+            return $this->wanted > 0 ? round($model / $this->wanted * 100 , 2) : 0;
         })->progressBar($style = 'success', $size = 'sm', $max = 100);
         $grid->column('publish_by','任务发布人')->using(User::Manager());
         $grid->column('status','任务状态')->using($this->status);
@@ -121,11 +122,8 @@ class MissionController extends AdminController
                 $form->select('department_id','部门')->options(Department::allDepartment());
             })
             ->when(2,function (Form $form){
-                $form->select('group_id','小组')->options(User::Employees());
-            })
-            ->when(3,function (Form $form){
                 $form->select('employee_id','任务坐席')->options(User::Employees());
-            });
+            })->required();
         $form->hidden('status')->default(2);
         $form->hidden('publish_by','发布人')->default(Admin::user()->id);
         $form->textarea('note','备注');

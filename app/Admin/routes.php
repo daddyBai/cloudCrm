@@ -2,6 +2,7 @@
 
 use App\Models\Department;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\DB;
 
@@ -20,7 +21,7 @@ Route::group([
     /**
      * 线索
      */
-    $router->resource('/clue','clueController');
+    $router->resource('/clue','ClueController');                # 线索 ok
     $router->resource('/records','RecordsController');          # 跟进记录
     $router->resource('/assets','AssetsController');            # 客户资产
     $router->resource('/files','ClientFileController');         # 客户文件
@@ -90,7 +91,20 @@ Route::group([
 
     # 测试
     $router->any('/test',function () {
-//        User::query()->where('department_id',5)->update(['department_id'=>NULL,'is_leader'=>2]);
-        User::query()->update(['department_id'=>NULL,'is_leader'=>2,'status'=>2]);
+//        foreach (range(0,10) as $value){
+//            $id[] = random_int(1,500);
+//        }
+//       \App\Models\Client::query()
+//           ->whereIn('id',$id)
+//           ->update([
+//               'employee_id'=>4,
+//               'true_client'=>1,
+//               'real_finished'=>1,
+//               'status'=>1
+//               ]);
+        $day = random_int(1,5);
+
+        \App\Models\Client::query()->where('true_client',1)
+            ->update(['last_updated_at'=>Carbon::now()->subDays($day)->toDateTimeString()]);
     });
 });

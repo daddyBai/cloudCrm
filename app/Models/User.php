@@ -217,4 +217,24 @@ class User extends Authenticatable
         return $this->belongsToMany($relatedModel, $pivotTable, 'user_id', 'permission_id');
     }
 
+    public static function myTitle($id,$name=true)
+    {
+        $cacheFile = date('Ymd',time()).'-myTitle-$name-'.$id;
+        if(Redis::exists($cacheFile)) {
+            $r_data = Redis::get($cacheFile);
+        }else{
+            $me = self::query()->where('id',$id)->with('department')->first();
+
+            $firstDep = isset( $me->department->title) ? $me->department->title : '';
+            if(isset($me->department->parent_id)){
+                $secDep = $me->department->parent_id > 0 ? Department::allDepartment()[$me->department->parent_id].' > ':'';
+            }else{
+                $secDep ='';
+            }
+            $myname = $name ? $me->name.'<br/>' : '';
+            $r_data = "$myname( $secDep $firstDep )";
+            Redis::set($cacheFile,$r_data);
+        }
+        return $r_data;
+    }
 }
