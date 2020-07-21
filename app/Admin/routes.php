@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\DB;
 
 Admin::routes();
 
@@ -51,7 +52,10 @@ Route::group([
 
     $router->resource('/threepart','ThreePartController');
 
-
+    $router->put('/roles/update/{id}','RoleController@updateForView');
+    $router->resource('roles','RoleController');
+    $router->resource('permissions','PermissionController');
+    $router->resource('users','UserController');
 
 
     # 业绩管理
@@ -83,5 +87,26 @@ Route::group([
     $router->get('dial/call/{id}','DialController@dial');
 
     # 测试
-    $router->any('/test','DepartmentController@test');
+    $router->any('/test',function (){
+        $permission = [
+            'query',
+            'create',
+            'import',
+            'export',
+            'forward',
+            'edit',
+            'delete',
+        ];
+        $firstMenu = DB::table('admin_menu')->where('parent_id',0)
+            ->get();
+
+
+        // 菜单权限
+        $menuPermission = DB::table('admin_menu')->where('parent_id','>',0)
+            ->get()
+            ->filter(function ($model) use ($permission){
+                return $model->permission != '';
+            });
+
+    });
 });

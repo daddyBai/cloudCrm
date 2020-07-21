@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Support\Facades\DB;
+use Encore\Admin\Traits\ModelTree;
 use Illuminate\Support\Facades\Redis;
 
 class Department extends BaseModel
 {
     protected $table = 'crm_department';
+
+    use ModelTree;
 
 
     public function getEmployeeAttribute($value)
@@ -39,6 +41,11 @@ class Department extends BaseModel
         }
 
         return json_decode($r_data, true);
+    }
+
+    public function employees()
+    {
+        return $this->hasMany(User::class,'department','id');
     }
 
 }
