@@ -91,20 +91,21 @@ Route::group([
 
     # 测试
     $router->any('/test',function () {
-//        foreach (range(0,10) as $value){
-//            $id[] = random_int(1,500);
-//        }
-//       \App\Models\Client::query()
-//           ->whereIn('id',$id)
-//           ->update([
-//               'employee_id'=>4,
-//               'true_client'=>1,
-//               'real_finished'=>1,
-//               'status'=>1
-//               ]);
-        $day = random_int(1,5);
+        foreach (range(0,15) as $value){
+            $id[] = random_int(1,500);
+        }
+       \App\Models\Client::query()
+           ->whereIn('id',$id)
+           ->update([
+               'employee_id'=>6,
+               'true_client'=>1,
+               'real_finished'=>1,
+               'status'=>1
+               ]);
 
-        \App\Models\Client::query()->where('true_client',1)
-            ->update(['last_updated_at'=>Carbon::now()->subDays($day)->toDateTimeString()]);
+//        $day = random_int(1,5);
+//
+//        \App\Models\Client::query()->where('true_client',1)
+//            ->update(['last_updated_at'=>Carbon::now()->subDays($day)->toDateTimeString()]);
     });
 });

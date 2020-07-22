@@ -33,9 +33,6 @@ class AllClientController extends BaseController
         $grid = new Grid(new Client());
 
 
-        if(self::isManager()){
-
-        }else if(self::isEmployee()){        // 针对于销售人员的规则       禁止多选、创建
             $grid->disableRowSelector();
             $grid->disableCreateButton();
             $grid->disableExport();
@@ -46,9 +43,6 @@ class AllClientController extends BaseController
 
             // 销售人员只能看自己管理的客户
             $grid->model()->where('employee_id',Admin::user()->id);
-        }else if(self::isManager()){
-            $grid->model()->whereIn('employee_id',array_keys(Manager::myGroup()));
-        }
 
         $grid->column('id', __('ID'))->sortable();
         $grid->column('name',__('name'))->modal('详细信息',function ($model){

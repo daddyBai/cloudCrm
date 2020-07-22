@@ -42,11 +42,8 @@ class FeedBackController extends BaseController
         $grid->disableCreateButton();
         $grid->column('id', __('ID'))->sortable();
         $grid->column('client_id', '客户姓名')->using(Client::getAllClients());
-        if(self::isEmployee()){
 
-        }else{
             $grid->column('employee_id', '所属员工')->using(User::Employees());
-        }
 
         $grid->column('client_feel','客户满意度')->using(CrmConfig::getKeyValue('client_feeling'));
         $grid->column('client_said','客户反馈');

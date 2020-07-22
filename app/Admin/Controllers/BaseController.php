@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Route;
 
 class BaseController extends AdminController
 {
-
+    protected $sh_status = [0=>'待审核','通过','驳回'];
 
     public function permission()
     {
@@ -29,10 +29,6 @@ class BaseController extends AdminController
         DB::table('admin_menu')->where('parent_id','>',0)->get();
     }
 
-    public static function isEmployee()
-    {
-        return Admin::user()->isRole('employee');
-    }
 
     public static function isManager()
     {
@@ -49,6 +45,14 @@ class BaseController extends AdminController
         return Admin::user()->id;
     }
 
+    /**
+     * @param Grid $grid
+     * @param bool $import_enable   是否允许导入
+     * @param bool $forward_enable  是否允许转交
+     * @param bool $call_enable     是否允许拨号
+     * @param bool $secret_enable   是否只查看自己的keh
+     * @return Grid
+     */
     public static function permissions(Grid $grid, $import_enable = false, $forward_enable = false, $call_enable = false, $secret_enable = true)
     {
 
@@ -65,6 +69,7 @@ class BaseController extends AdminController
         // 导入权限
         if(Admin::user()->can($uri.'.import') && $import_enable){
             $grid->tools(function ($tools){
+                $tools->append("<a class='btn btn-sm btn-info' href='/upload/files/导入格式.xlsx' target='_blank' download='导入格式'>下载数据导入格式</a>");
                 $tools->append(new ExcelImport());
             });
         }
@@ -95,14 +100,14 @@ class BaseController extends AdminController
         }
 
         // 允许拨号
-        if($call_enable){
+        if($call_enable == true){
             $grid->actions(function ($actions){
                 $actions->add(new Call($actions->row['id']));
             });
         }
 
         // 数据保护，只能查看自己的
-        if($secret_enable){
+        if($secret_enable == true){
             $grid->model()->where('employee_id', self::current_id());
         }
 
@@ -110,6 +115,10 @@ class BaseController extends AdminController
         $grid->actions(function ($actions){
             $actions->disableView();
         });
+
+
+
+
 
         return $grid;
 

@@ -2,6 +2,7 @@
 
 namespace App\Admin\Traits;
 use App\Models\Client;
+use App\Models\Department;
 use Encore\Admin\Widgets\Tab;
 use Illuminate\Support\Facades\Request;
 
@@ -19,15 +20,23 @@ trait tabMenu{
             '回访'=>"/admin/feedback/$id"
         ];
 
-        // 这里判断一下是线索还是客户
+        // 线索
         $true_client = Client::query()
             ->where('id',$id)
             ->where('true_client',1)
             ->exists();
+
         if(! $true_client){
             unset($menuList['放贷']);
             unset($menuList['回访']);
             $menuList['详细资料'] = "/admin/clue/$id/edit";
+        }else if(Client::query()
+            ->where('id',$id)
+            ->where('in_sea',1)
+            ->exists()){
+            unset($menuList['放贷']);
+            unset($menuList['回访']);
+            $menuList['详细资料'] = "/admin/sea/$id/edit";
         }
 
         if(array_key_exists($target,$menuList)){

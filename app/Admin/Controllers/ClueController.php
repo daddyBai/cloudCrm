@@ -9,6 +9,7 @@ use App\Admin\Actions\GiveOther;
 use App\Admin\Actions\NeedHelp;
 use App\Admin\Extensions\Tools\ExcelImport;
 use App\Admin\Traits\tabMenu;
+use App\Exports\ClientExport;
 use App\Models\China;
 use App\Models\Client;
 use App\Models\CrmConfig;
@@ -54,9 +55,13 @@ class ClueController extends BaseController
     {
         $grid = new Grid(new Client());
 
+        $grid->exporter(new ClientExport());
+
         $grid = $this->permissions($grid, true, true, true);
 
-        $grid->model()->orderBy('created_at','desc');
+        $grid->model()
+            ->whereIn('true_client',[0,2])
+            ->orderBy('created_at','desc');
 
         $grid->column('id',__('ID'))->sortable();
         $grid->column('name','姓名')->display(function ($model){
@@ -270,6 +275,8 @@ class ClueController extends BaseController
             $tools->disableDelete();
         });
 
+        // 线索
+        $form->hidden('true_client')->value(0);
 
         return $form;
     }

@@ -108,11 +108,7 @@ class DialController extends BaseController
             $filter->column(1/2, function ($filter) {
                 $filter->equal('client_name', '客户姓名');
                 $filter->between('created_at', '拨号时间')->datetime();
-                if (self::isEmployee()) {
-
-                } else {
-                    $filter->equal('employee_id', '员工')->select(User::Employees());
-                }
+                $filter->equal('employee_id', '员工')->select(User::Employees());
             });
         });
 

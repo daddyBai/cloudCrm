@@ -3,19 +3,17 @@
 namespace App\Admin\Controllers;
 
 use App\Admin\Actions\BatchDistribution;
-use App\Admin\Extensions\Tools\ExcelImport;
+use App\Exports\ClientExport;
 use App\Imports\SeaImport;
 use App\Models\China;
 use App\Models\Client;
 use App\Models\CrmConfig;
 use App\Models\User;
 use Carbon\Carbon;
-use Encore\Admin\Facades\Admin;
 use Encore\Admin\Form;
 use Encore\Admin\Grid;
 use Encore\Admin\Media\MediaManager;
 use Encore\Admin\Show;
-use Encore\Admin\Widgets\Box;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
@@ -37,77 +35,34 @@ class SeaController extends BaseController
     protected function grid()
     {
         $grid = new Grid(new Client());
+        $grid->disableCreateButton();
+        $grid->exporter(new ClientExport());
+
         // 筛选没有人负责的客户为公海
-        $grid->model()->whereNull('employee_id');
+        $grid->model()->where('in_sea',1);
 
-        // 针对于销售人员的规则       禁止多选、创建
-        if(self::isEmployee()){
-            $grid->disableCreateButton();
-            $grid->actions(function (Grid\Displayers\Actions $actions){
-                $actions->disableAll();
-            });
-        }
-
-        // 针对于销售主管和超管的开放权限
-        if(self::isManager() || self::isSuper()){
-            $grid->column('employee_id','负责人')->using(User::Employees())->filter(User::Employees());
-            // 允许管理员导入
-            $grid->tools(function ($tools){
-                $tools->append(new ExcelImport());
-            });
-        }
-
-
+        $grid = $this->permissions($grid, true,true,false,false);
         $grid->column('id', __('ID'))->sortable();
-        $grid->column('name','姓名')->modal('详细信息',function ($model){
-            $box = new Box('个人信息','内容');
-            $box->removable();
-            $box->collapsable();
-            $box->style('info');
-            $box->solid();
-            $box->scrollable();
-            return $box;
-        })->filter();
-        $grid->column('sex','性别')->using([1=>'男',2=>'女'])->filter([1=>'男',2=>'女']);
-        $grid->column('mobile','手机号')->filter();
-        $grid->column('status','客户状态')->using(CrmConfig::getKeyValue('client_status'))->filter(CrmConfig::getKeyValue('client_status'));
-        $grid->column('marriage','婚姻状况')->using(Client::marriage)->filter(Client::marriage);
-        $grid->column('email','邮箱');
-        $grid->column('education','学历')->using(Client::education)->filter(Client::education);
-        $grid->column('age','年龄')->filter('range');
-        $grid->column('employee_status','跟进状态')->using(CrmConfig::getKeyValue('follow_status'))->filter(CrmConfig::getKeyValue('follow_status'));
-        $grid->column('updated_at','最后更新时间')->display(function ($model){
-           if(empty($model)){
-               return '';
-           }
-            $lastUpdateTime = time() - strtotime($model);
-            $lastUpdateTime = ceil($lastUpdateTime/60/60/24);
-           if($lastUpdateTime > 6){
-                $lastUpdateTime = "<span style='color: red'>$lastUpdateTime 天前</span>";
-           }else{
-               $lastUpdateTime = "<span style='color: green'>$lastUpdateTime 天</span>";
-           }
-           return $lastUpdateTime;
-        })->filter('range','date');
+        $grid->column('name','姓名')->display(function ($model){
+            return "<a href='/admin/sea/$this->id/edit'>$model</a>";
+        });
+        $grid->column('mobile','手机号(点击拨号)');
+        $grid->column('employee_status','跟进状态')->using(CrmConfig::getKeyValue('follow_status'));
+        $grid->column('created_at','创建时间');
 
         $grid->filter(function ($filter){
             // 去掉默认的id过滤器
             $filter->disableIdFilter();
 
-            $filter->column(1/3,function ($filter){
+            $filter->column(1/2,function ($filter){
                 $filter->like('name','客户姓名');
                 $filter->in('employee_status','跟进状态')->multipleSelect(CrmConfig::getKeyValue('follow_status'));
             });
-            $filter->column(1/3,function ($filter){
-                $filter->equal('sex','性别')->select([1=>'男',2=>'女']);
-            });
-            $filter->column(1/3,function ($filter){
+            $filter->column(1/2,function ($filter){
                 $filter->equal('mobile','手机号码');
                 $filter->equal('employee_id','员工')->select(User::Employees());
             });
         });
-
-
 
         $grid->batchActions(function ($batch){
             $batch->add(new BatchDistribution());

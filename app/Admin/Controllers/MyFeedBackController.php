@@ -30,10 +30,7 @@ class MyFeedBackController extends BaseController
     {
         $grid = new Grid(new CallBack());
 
-        if(self::isEmployee()){
-            $grid->model()->where('employee_id',self::current_id());
-        }
-
+        $grid->model()->where('employee_id',self::current_id());
         $grid->disableActions();
         $grid->disableRowSelector();
         $grid->disableCreateButton();

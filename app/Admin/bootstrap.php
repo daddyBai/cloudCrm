@@ -36,17 +36,5 @@ Grid::init(function (Grid $grid){
         $actions->disableView();
     });
 
-    /**
-     * 员工禁用规则
-     * 导出/删除/多行选择
-     */
-    if(Admin::user()->isRole('employee')){
-        $grid->disableExport();
-        $grid->actions(function (Actions $actions){
-            $actions->disableDelete();
-
-        });
-    }
-
 });
 
